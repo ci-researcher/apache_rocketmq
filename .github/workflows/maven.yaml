@@ -1,9 +1,6 @@
 name: Build and Run Tests by Maven
 on:
-  pull_request:
-    types: [opened, reopened, synchronize]
-  push:
-    branches: [master, develop, bazel]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -18,12 +15,17 @@ jobs:
       matrix:
         # see https://docs.github.com/en/actions/using-github-hosted-runners/about-github-hosted-runners#supported-runners-and-hardware-resources
         os: [ubuntu-latest, windows-latest, macos-latest]
-        jdk: [8]
+        jdk:
+          - 11
+          - 16
+          - 17
+          - 21
+          - 25
     steps:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Set up JDK ${{ matrix.jdk }}
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           java-version: ${{ matrix.jdk }}
           # See https://github.com/actions/setup-java?tab=readme-ov-file#supported-distributions
@@ -40,7 +42,7 @@ jobs:
           mvn -B package --file pom.xml $JACOCO_FLAG
 
       - name: Upload Auth JVM crash logs
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jvm-crash-logs
@@ -48,7 +50,7 @@ jobs:
           retention-days: 1
 
       - name: Upload broker JVM crash logs
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: jvm-crash-logs
